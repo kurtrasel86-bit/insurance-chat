@@ -1,0 +1,38 @@
+1. На первом компьютере
+
+git init
+git add -A
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/kurtrasel86-bit/insurance-chat.git
+git push -u origin main
+
+
+После этого проект доступен на GitHub.
+
+2. На втором компьютере
+
+Сначала клонируешь репозиторий:
+
+git clone https://github.com/kurtrasel86-bit/insurance-chat.git
+
+
+Теперь у тебя локальная копия проекта. Открой её через Cursor (File → Open Folder → выбери папку с проектом).
+
+3. Работа в Cursor
+
+Вноси изменения в код.
+
+Через панель Source Control или терминал делай коммит:
+
+git add -A
+git commit -m "Update"
+git push
+
+
+Перед началом новой сессии на любом компе делай:
+
+git pull
+
+
+чтобы подтянуть изменения, сделанные на другом компьютере.

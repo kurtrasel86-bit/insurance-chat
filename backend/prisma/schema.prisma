@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  channel       String
+  channelUserId String
+  consent       Boolean  @default(false)
+  preferVoice   Boolean  @default(false)
+  email         String?  @unique
+  sessions      ChatSession[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Agent {
+  id        String   @id @default(uuid())
+  name      String
+  login     String   @unique
+  password  String
+  status    String   @default("offline")
+  companies String
+  sessions  ChatSession[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChatSession {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  agent       Agent?   @relation(fields: [agentId], references: [id])
+  agentId     String?
+  state       String   @default("qa")
+  preferVoice Boolean  @default(false)
+  email       String?
+  messages    Message[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  session   ChatSession @relation(fields: [sessionId], references: [id])
+  sessionId String
+  sender    String
+  text      String?
+  voiceUrl  String?
+  fileUrl   String?
+  createdAt DateTime @default(now())
+}
+
+model Policy {
+  id            String   @id @default(uuid())
+  sessionId     String
+  productType   String
+  companyCode   String
+  status        String
+  pdfUrl        String?
+  expireAt      DateTime?
+  isAgentClient Boolean @default(false)
+  createdAt     DateTime @default(now())
+}
+
+model Reminder {
+  id         String   @id @default(uuid())
+  policyId   String
+  remindAt   DateTime
+  recipients String
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+}
+
+model KBDoc {
+  id           String   @id @default(uuid())
+  companyCode  String
+  productCode  String
+  title        String
+  fileUrl      String?
+  sourceUrl    String?
+  version      String?
+  documentType String?
+  isApproved   Boolean  @default(false)
+  approvedAt   DateTime?
+  approvedBy   String?
+  isObsolete   Boolean  @default(false)
+  obsoleteAt   DateTime?
+  obsoleteBy   String?
+  chunks       KBChunk[]
+  createdAt    DateTime @default(now())
+}
+
+model KBChunk {
+  id       String  @id @default(uuid())
+  doc      KBDoc   @relation(fields: [docId], references: [id])
+  docId    String
+  chunkIdx Int
+  text     String
+}
+
+model Incident {
+  id        String   @id @default(uuid())
+  sessionId String?
+  type      String
+  details   String
+  createdAt DateTime @default(now())
+}
+
+model DataCollectionJob {
+  id            String   @id @default(uuid())
+  companyCode   String
+  jobType       String
+  status        String   @default("pending")
+  startedAt     DateTime?
+  completedAt   DateTime?
+  itemsCollected Int     @default(0)
+  itemsUpdated   Int     @default(0)
+  itemsNew       Int     @default(0)
+  errorMessage   String?
+  duration      Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model DataCollectionConfig {
+  id                String   @id @default(uuid())
+  companyCode       String   @unique
+  scrapingEnabled   Boolean  @default(true)
+  apiEnabled        Boolean  @default(false)
+  scrapingSelectors String?
+  apiEndpoints      String?
+  rateLimit         Int      @default(30)
+  lastChecked       DateTime?
+  lastSuccessful    DateTime?
+  errorCount        Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  type        String
+  companyCode String?
+  title       String
+  message     String
+  data        String?
+  sent        Boolean  @default(false)
+  channels    String?
+  createdAt   DateTime @default(now())
+}
+
+model DataQualityReport {
+  id          String   @id @default(uuid())
+  companyCode String
+  productCode String
+  docId       String
+  score       Int
+  issues      String?
+  suggestions String?
+  createdAt   DateTime @default(now())
+}
+
+model Source {
+  id              String   @id @default(uuid())
+  name            String
+  url             String
+  type            String
+  companyCode     String?
+  productCode     String?
+  
+  checkFrequency  String   @default("daily")
+  lastChecked     DateTime?
+  lastModified    DateTime?
+  contentHash     String?
+  
+  isActive        Boolean  @default(true)
+  changes         SourceChange[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SourceChange {
+  id              String   @id @default(uuid())
+  sourceId        String
+  source          Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  changeType      String
+  description     String
+  oldContent      String?
+  newContent      String?
+  
+  status          String   @default("pending")
+  reviewedAt      DateTime?
+  appliedAt       DateTime?
+  
+  createdAt       DateTime @default(now())
+}

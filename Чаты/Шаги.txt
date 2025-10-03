@@ -1,0 +1,20 @@
+Окно №1. Запускаем тунель
+
+npx --yes localtunnel --port 3000
+
+Окно №2. Адрес тунеля вставляем и запускаем вебхук
+
+$botToken = "8279197548:AAGXNdEXKQUVBoK_qY2D8dAZWjdzSl1qhmQ"
+$publicUrl = "https://tangy-colts-change.loca.lt"
+Invoke-RestMethod -Uri ("https://api.telegram.org/bot{0}/setWebhook?url={1}/channels/telegram/webhook" -f $botToken, $publicUrl) -Method Get
+
+Окно №3. Запускаем сервер.
+
+cd C:\Users\Andrey\Страхование\backend
+$env:TELEGRAM_BOT_TOKEN = "8279197548:AAGXNdEXKQUVBoK_qY2D8dAZWjdzSl1qhmQ"; npm run start:dev
+
+
+
+
+
+

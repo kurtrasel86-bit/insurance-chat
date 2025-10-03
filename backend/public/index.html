@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Страховой чат-бот</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .service-info-footer {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .info-item {
+            background: #e9ecef;
+            color: #495057;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .agents-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .agents-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .agents-label {
+            font-size: 12px;
+            color: #495057;
+        }
+        
+        .agents-count {
+            font-size: 12px;
+            font-weight: 600;
+            color: #007bff;
+        }
+        
+        .agents-online {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #28a745;
+        }
+        
+        .online-indicator {
+            font-size: 8px;
+        }
+        
+        .online-text {
+            font-weight: 500;
+        }
+        
+        /* Модальное окно */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 0;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        
+        .close {
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+        }
+        
+        .close:hover {
+            opacity: 0.7;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .agent-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .agent-name {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .agent-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .status-online {
+            color: #28a745;
+        }
+        
+        .status-offline {
+            color: #6c757d;
+        }
+        
+        .status-busy {
+            color: #ffc107;
+        }
+        
+        .agent-companies {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .chat-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .chat-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin: 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .message.user .message-avatar {
+            background: #667eea;
+            color: white;
+            order: 1;
+        }
+
+        .message.ai .message-avatar {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            min-height: 40px;
+            max-height: 120px;
+            padding: 10px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .send-button:hover {
+            background: #5a6fd8;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            margin-bottom: 16px;
+            max-width: 80px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .voice-button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: #f0f0f0;
+            color: #666;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .voice-button:hover {
+            background: #e0e0e0;
+        }
+
+        .voice-button.recording {
+            background: #ff4444;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .quick-actions {
+            display: none;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .quick-actions.expanded {
+            display: flex;
+        }
+        
+        .quick-actions-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-actions-toggle:hover {
+            background: #e0e0e0;
+        }
+        
+        .quick-actions-toggle .arrow {
+            transition: transform 0.3s ease;
+        }
+        
+        .quick-actions-toggle.expanded .arrow {
+            transform: rotate(180deg);
+        }
+
+        .quick-action {
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .quick-action:hover {
+            background: #e0e0e0;
+        }
+
+        @media (max-width: 480px) {
+            .chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 Страховой помощник</h1>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                👋 Добро пожаловать! Я помогу вам с вопросами по страхованию.
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <button class="quick-actions-toggle" onclick="toggleQuickActions()">
+                <span>Быстрые действия</span>
+                <span class="arrow">▼</span>
+            </button>
+            <div class="quick-actions" id="quickActions">
+                <button class="quick-action" onclick="sendQuickMessage('Сколько стоит туристическая страховка?')">
+                    🧳 Туристическая страховка
+                </button>
+                <button class="quick-action" onclick="sendQuickMessage('Нужна медицинская страховка')">
+                    🏥 Медицинская страховка
+                </button>
+                <button class="quick-action" onclick="sendQuickMessage('Страхование автомобиля')">
+                    🚗 Автострахование
+                </button>
+                <button class="quick-action" onclick="requestAgent()">
+                    👨‍💼 Связать с агентом
+                </button>
+                <button class="quick-action" onclick="showAgentsInfo()">
+                    ℹ️ Об агентах
+                </button>
+            </div>
+            
+            <div class="chat-input-wrapper">
+                <textarea 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Введите ваш вопрос..."
+                    rows="1"
+                ></textarea>
+                <button class="voice-button" id="voiceButton" onclick="toggleVoiceRecording()" title="Голосовое сообщение">
+                    🎤
+                </button>
+                <button class="send-button" id="sendButton" onclick="sendMessage()" title="Отправить">
+                    ➤
+                </button>
+            </div>
+        </div>
+        
+        <div class="service-info-footer">
+            <div class="info-item">🤖 AI-ассистент</div>
+            <div class="info-item">📱 Telegram / WhatsApp</div>
+            <div class="info-item">📄 Оформление полисов</div>
+            <div class="agents-info" id="agentsInfo">
+                <div class="agents-status">
+                    <span class="agents-label">👥 Агенты:</span>
+                    <span class="agents-count" id="agentsCount">Загрузка...</span>
+                </div>
+                <div class="agents-online" id="agentsOnline" style="display: none;">
+                    <span class="online-indicator">🟢</span>
+                    <span class="online-text">Онлайн</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно информации об агентах -->
+    <div id="agentsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👥 Информация об агентах</h3>
+                <span class="close" onclick="closeAgentsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="agentsList">
+                    <div class="loading">Загрузка информации об агентах...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let sessionId = null;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeSession();
+            setupEventListeners();
+            loadAgentsInfo();
+        });
+
+        // Создание сессии
+        async function initializeSession() {
+            try {
+                const response = await fetch(`${API_BASE}/v1/chat/sessions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        channel: 'web',
+                        channelUserId: generateUserId(),
+                        preferVoice: false
+                    })
+                });
+
+                if (response.ok) {
+                    const session = await response.json();
+                    sessionId = session.id;
+                    console.log('Session created:', sessionId);
+                } else {
+                    showError('Ошибка создания сессии чата');
+                }
+            } catch (error) {
+                console.error('Failed to create session:', error);
+                showError('Ошибка подключения к серверу');
+            }
+        }
+
+        // Генерация ID пользователя
+        function generateUserId() {
+            return 'web_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            const chatInput = document.getElementById('chatInput');
+            const sendButton = document.getElementById('sendButton');
+
+            // Enter для отправки
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Автоматическое изменение высоты
+            chatInput.addEventListener('input', () => {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+            });
+
+            // Обработка вставки файлов
+            chatInput.addEventListener('paste', (e) => {
+                const items = e.clipboardData.items;
+                for (let item of items) {
+                    if (item.type.indexOf('image') !== -1) {
+                        const file = item.getAsFile();
+                        handleFileUpload(file);
+                    }
+                }
+            });
+        }
+
+        // Отправка сообщения
+        async function sendMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const message = chatInput.value.trim();
+            
+            if (!message || !sessionId) return;
+
+            // Добавляем сообщение пользователя
+            addMessage(message, 'user');
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+
+            // Показываем индикатор печати
+            showTypingIndicator();
+
+            try {
+                // Отправляем сообщение на сервер
+                const response = await fetch(`${API_BASE}/v1/chat/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sessionId: sessionId,
+                        sender: 'user',
+                        text: message
+                    })
+                });
+
+                if (response.ok) {
+                    // Получаем ответ от AI
+                    const aiResponse = await getAIResponse(message);
+                    addMessage(aiResponse, 'ai');
+                } else {
+                    addMessage('Извините, произошла ошибка. Попробуйте еще раз.', 'ai');
+                }
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                addMessage('Ошибка отправки сообщения. Проверьте подключение к интернету.', 'ai');
+            } finally {
+                hideTypingIndicator();
+            }
+        }
+
+        // Переключение быстрых действий
+        function toggleQuickActions() {
+            const quickActions = document.getElementById('quickActions');
+            const toggle = document.querySelector('.quick-actions-toggle');
+            
+            if (quickActions.classList.contains('expanded')) {
+                quickActions.classList.remove('expanded');
+                toggle.classList.remove('expanded');
+            } else {
+                quickActions.classList.add('expanded');
+                toggle.classList.add('expanded');
+            }
+        }
+
+        // Быстрые сообщения
+        function sendQuickMessage(message) {
+            document.getElementById('chatInput').value = message;
+            sendMessage();
+        }
+
+        // Получение ответа от AI
+        async function getAIResponse(userMessage) {
+            try {
+                const response = await fetch(`${API_BASE}/ai/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: userMessage,
+                        sessionId: sessionId
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.reply || 'Извините, не могу обработать ваш запрос.';
+                } else {
+                    return 'Извините, сервис временно недоступен.';
+                }
+            } catch (error) {
+                console.error('AI response error:', error);
+                return 'Ошибка получения ответа от AI.';
+            }
+        }
+
+        // Добавление сообщения в чат
+        function addMessage(text, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? 'В' : (sender === 'system' ? '⚙️' : '🤖');
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.textContent = text;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            chatMessages.appendChild(messageDiv);
+
+            // Прокрутка вниз
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Возвращаем элемент для возможного удаления
+            return messageDiv;
+        }
+
+        // Показать индикатор печати
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'block';
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Скрыть индикатор печати
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        // Показать ошибку
+        function showError(message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            chatMessages.appendChild(errorDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Голосовые сообщения
+        async function toggleVoiceRecording() {
+            if (isRecording) {
+                stopVoiceRecording();
+            } else {
+                await startVoiceRecording();
+            }
+        }
+
+        async function startVoiceRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await sendVoiceMessage(audioBlob);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                
+                const voiceButton = document.getElementById('voiceButton');
+                voiceButton.classList.add('recording');
+                voiceButton.textContent = '⏹️';
+            } catch (error) {
+                console.error('Error starting voice recording:', error);
+                showError('Не удалось получить доступ к микрофону');
+            }
+        }
+
+        function stopVoiceRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                const voiceButton = document.getElementById('voiceButton');
+                voiceButton.classList.remove('recording');
+                voiceButton.textContent = '🎤';
+            }
+        }
+
+        async function sendVoiceMessage(audioBlob) {
+            // Здесь можно добавить отправку голосового сообщения
+            // Пока что просто показываем сообщение
+            addMessage('🎤 Голосовое сообщение (функция в разработке)', 'user');
+        }
+
+        // Обработка загрузки файлов
+        function handleFileUpload(file) {
+            if (file.type.startsWith('image/')) {
+                addMessage('📷 Изображение (функция в разработке)', 'user');
+            } else {
+                addMessage('📎 Файл (функция в разработке)', 'user');
+            }
+        }
+
+        // Запрос агента
+        async function requestAgent() {
+            if (!sessionId) {
+                showError('Сессия не создана. Перезагрузите страницу.');
+                return;
+            }
+
+            // Показываем индикатор загрузки
+            const loadingMessage = addMessage('🔄 Запрашиваем агента...', 'system');
+            
+            try {
+                const response = await fetch(`${API_BASE}/web/request-agent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sessionId: sessionId,
+                        reason: 'Клиент запросил подключение агента'
+                    })
+                });
+
+                const result = await response.json();
+                
+                // Удаляем сообщение о загрузке
+                loadingMessage.remove();
+                
+                if (result.success) {
+                    addMessage(`✅ ${result.message}`, 'system');
+                } else {
+                    addMessage(`❌ ${result.message}`, 'system');
+                }
+            } catch (error) {
+                loadingMessage.remove();
+                console.error('Error requesting agent:', error);
+                addMessage('❌ Ошибка запроса агента. Попробуйте позже.', 'system');
+            }
+        }
+
+        // Загрузка информации об агентах
+        async function loadAgentsInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/agents/stats`);
+                const stats = await response.json();
+                
+                const agentsCount = document.getElementById('agentsCount');
+                const agentsOnline = document.getElementById('agentsOnline');
+                
+                if (agentsCount) {
+                    agentsCount.textContent = `${stats.total} агентов`;
+                }
+                
+                if (stats.online > 0 && agentsOnline) {
+                    agentsOnline.style.display = 'flex';
+                }
+                
+                console.log('Агенты загружены:', stats);
+            } catch (error) {
+                console.error('Ошибка загрузки агентов:', error);
+                const agentsCount = document.getElementById('agentsCount');
+                if (agentsCount) {
+                    agentsCount.textContent = 'Ошибка загрузки';
+                }
+            }
+        }
+
+        // Проверка статуса агентов
+        async function checkAgentsStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/web/agents/stats`);
+                const stats = await response.json();
+                
+                // Обновляем информацию о доступности агентов
+                if (stats.online > 0) {
+                    console.log(`Доступно агентов: ${stats.online}`);
+                } else {
+                    console.log('Нет доступных агентов');
+                }
+            } catch (error) {
+                console.error('Error checking agents status:', error);
+            }
+        }
+
+        // Показать информацию об агентах
+        async function showAgentsInfo() {
+            const modal = document.getElementById('agentsModal');
+            const agentsList = document.getElementById('agentsList');
+            
+            modal.style.display = 'flex';
+            agentsList.innerHTML = '<div class="loading">Загрузка информации об агентах...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/agents/available`);
+                const agents = await response.json();
+                
+                if (agents.length === 0) {
+                    agentsList.innerHTML = '<div class="loading">Нет доступных агентов</div>';
+                    return;
+                }
+                
+                let html = '';
+                agents.forEach(agent => {
+                    const statusClass = agent.status === 'online' ? 'status-online' : 
+                                      agent.status === 'busy' ? 'status-busy' : 'status-offline';
+                    const statusText = agent.status === 'online' ? '🟢 Онлайн' : 
+                                     agent.status === 'busy' ? '🟡 Занят' : '🔴 Офлайн';
+                    
+                    html += `
+                        <div class="agent-card">
+                            <div class="agent-name">${agent.name}</div>
+                            <div class="agent-status ${statusClass}">${statusText}</div>
+                            <div class="agent-companies">Компании: ${agent.companies.join(', ')}</div>
+                        </div>
+                    `;
+                });
+                
+                agentsList.innerHTML = html;
+            } catch (error) {
+                console.error('Ошибка загрузки агентов:', error);
+                agentsList.innerHTML = '<div class="loading">Ошибка загрузки информации об агентах</div>';
+            }
+        }
+
+        // Закрыть модальное окно
+        function closeAgentsModal() {
+            const modal = document.getElementById('agentsModal');
+            modal.style.display = 'none';
+        }
+
+        // Закрыть модальное окно при клике вне его
+        window.onclick = function(event) {
+            const modal = document.getElementById('agentsModal');
+            if (event.target === modal) {
+                closeAgentsModal();
+            }
+        }
+
+        // Проверяем статус агентов при загрузке
+        checkAgentsStatus();
+    </script>
+</body>
+</html>
